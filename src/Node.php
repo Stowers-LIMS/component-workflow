@@ -12,7 +12,7 @@ class Node
     private $name;
 
     /**
-     * @var array
+     * @var Transition[]
      */
     private $transitions;
 
@@ -51,7 +51,7 @@ class Node
      *
      * @param ContextInterface $context
      *
-     * @return array
+     * @return Transition[]
      */
     public function getOpenTransitions(ContextInterface $context)
     {
