@@ -76,7 +76,55 @@ class Workflow
             throw new Exception\NotInitializedWorkflowException();
         }
 
+        $oldNodeName = $this->current->getName();
         $transitions = $this->current->getOpenTransitions($context);
+
+        if (0 === count($transitions)) {
+            throw new Exception\NoOpenTransitionException();
+        } elseif (1 < count($transitions)) {
+            throw new Exception\MoreThanOneOpenTransitionException();
+        }
+
+        $transition = array_pop($transitions);
+        $token = $transition->getDestination()->getName();
+
+        $context->getTokenedObject()->setToken($token);
+
+        // Pre event
+        $this->eventDispatcher->dispatch($oldNodeName . '.departure', new Event($context, $oldNodeName));
+
+        // Arrive
+        $this->initialize($token);
+        $this->eventDispatcher->dispatch($token . '.arrival', new Event($context, $oldNodeName, $token));
+
+        // Post event
+        // You could post persistence here, or sending email, or any other operations after arriving at a new node
+//        $this->initialize($token);
+        $this->eventDispatcher->dispatch($token . '.post_arrival', new Event($context, $token));
+
+        return $this;
+    }
+
+    /**
+     * Moves the current token to the next node of the workflow.
+     *
+     * @param ContextInterface $context
+     *
+     * @return Workflow
+     *
+     * @throws Exception\NotInitializedWorkflowException
+     * @throws Exception\NoOpenTransitionException
+     * @throws Exception\MoreThanOneOpenTransitionException
+     */
+    public function moveTo(ContextInterface $context, $destinationNode)
+    {
+        if (null === $this->current) {
+            throw new Exception\NotInitializedWorkflowException();
+        }
+
+        $transitions = array_filter($this->current->getOpenTransitions($context), function (Transition $t) use ($destinationNode) {
+            return $t->getDestination()->getName() === $destinationNode;
+        });
 
         if (0 === count($transitions)) {
             throw new Exception\NoOpenTransitionException();
@@ -89,6 +137,8 @@ class Workflow
 
         $this->initialize($token);
         $this->eventDispatcher->dispatch($token, new Event($context, $token));
+
+        // Run this again until no open transitions
 
         return $this;
     }

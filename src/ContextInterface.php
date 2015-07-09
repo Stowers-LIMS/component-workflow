@@ -7,6 +7,11 @@ namespace Alterway\Component\Workflow;
 interface ContextInterface
 {
     /**
+     * @return TokenableInterface
+     */
+    public function getTokenedObject();
+
+    /**
      * Adds parameters to the service container parameters.
      *
      * @param array $parameters
